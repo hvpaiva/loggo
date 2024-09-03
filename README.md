@@ -2,7 +2,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/hvpaiva/loggo#section-readme.svg)](https://pkg.go.dev/github.com/hvpaiva/loggo#section-readme)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hvpaiva/loggo)](https://goreportcard.com/report/github.com/hvpaiva/loggo)
 [![License](https://img.shields.io/badge/License-Mit-blue.svg)](LICENSE)
-[![Build](https://github.com/hvpaiva/loggo/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hvpaiva/loggo/actions/workflows/ci.yml)
+[![CI](https://github.com/hvpaiva/loggo/actions/workflows/ci.yml/badge.svg)](https://github.com/hvpaiva/loggo/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/hvpaiva/loggo/branch/main/graph/badge.svg)](https://codecov.io/gh/hvpaiva/loggo)
 
 
