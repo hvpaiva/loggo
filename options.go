@@ -1,6 +1,7 @@
 package loggo
 
 import (
+	"context"
 	"io"
 	"time"
 )
@@ -14,6 +15,9 @@ type TimeProvider func() time.Time
 // CallerProvider is a function that returns the path of the caller, the file name, and the line number, and a
 // boolean indicating if the information is available.
 type CallerProvider func() (pc uintptr, file string, line int, ok bool)
+
+// Hook is a function that is executed before or after logging a message.
+type Hook func(l *Logger, message *string)
 
 // WithOutput configures the output destination of a Logger. The default output is os.Stdout.
 //
@@ -99,5 +103,51 @@ func WithMaxSize(size int) Option {
 func WithCallerProvider(provider CallerProvider) Option {
 	return func(l *Logger) {
 		l.callerProvider = provider
+	}
+}
+
+// WithContext configures the context of a Logger. The default context is context.Background.
+//
+// Parameters:
+//   - Context: The context to use.
+//
+// Example:
+//
+//	logger := loggo.New(loggo.LevelInfo, loggo.WithContext(context.Background()))
+func WithContext(ctx context.Context) Option {
+	return func(l *Logger) {
+		l.Context = ctx
+	}
+}
+
+// WithPreHook adds a pre-hook to a Logger. Pre-hooks are executed before logging a message.
+//
+// Parameters:
+//   - hook: The pre-hook function to add.
+//
+// Example:
+//
+//	logger := loggo.New(loggo.LevelInfo, loggo.WithPreHook(func(Context context.Context, level loggo.Level, message string) {
+//		// Do something before logging the message
+//	}))
+func WithPreHook(hook Hook) Option {
+	return func(l *Logger) {
+		l.preHooks = append(l.preHooks, hook)
+	}
+}
+
+// WithPostHook adds a post-hook to a Logger. Post-hooks are executed after logging a message.
+//
+// Parameters:
+//   - hook: The post-hook function to add.
+//
+// Example:
+//
+//	logger := loggo.New(loggo.LevelInfo, loggo.WithPostHook(func(Context context.Context, level loggo.Level, message string) {
+//		// Do something after logging the message
+//	}))
+func WithPostHook(hook Hook) Option {
+	return func(l *Logger) {
+		l.postHooks = append(l.postHooks, hook)
 	}
 }

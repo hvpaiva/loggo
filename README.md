@@ -1,4 +1,4 @@
-# Loggo
+# Loggo - A Go Logging Library
 [![Go Reference](https://pkg.go.dev/badge/github.com/hvpaiva/loggo#section-readme.svg)](https://pkg.go.dev/github.com/hvpaiva/loggo#section-readme)
 [![License](https://img.shields.io/badge/License-Mit-blue.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hvpaiva/loggo)](https://goreportcard.com/report/github.com/hvpaiva/loggo)
@@ -8,6 +8,14 @@
 [![CodeQL](https://github.com/hvpaiva/loggo/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/hvpaiva/loggo/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/hvpaiva/loggo/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/hvpaiva/loggo/actions/workflows/dependabot/dependabot-updates)
 
+```
+ __         ______     ______     ______     ______    
+/\ \       /\  __ \   /\  ___\   /\  ___\   /\  __ \   
+\ \ \____  \ \ \/\ \  \ \ \__ \  \ \ \__ \  \ \ \/\ \  
+ \ \_____\  \ \_____\  \ \_____\  \ \_____\  \ \_____\ 
+  \/_____/   \/_____/   \/_____/   \/_____/   \/_____/ 
+                                                       
+```
 
 Loggo is a simple and flexible logging library for Go, providing configurable log levels, output destinations, message templates, and time providers.
 
@@ -56,12 +64,7 @@ Create a new logger with a specified log level and log messages:
 ```go
 package main
 
-import (
-    "os"
-
-
-    "github.com/hvpaiva/loggo"
-)
+import "github.com/hvpaiva/loggo"
 
 func main() {
     logger := loggo.New(loggo.LevelInfo)
@@ -105,12 +108,7 @@ Customize the log message format:
 ```go
 package main
 
-import (
-    "os"
-
-
-    "github.com/hvpaiva/loggo"
-)
+import "github.com/hvpaiva/loggo"
 
 func main() {
     logger := loggo.New(loggo.LevelInfo, loggo.WithTemplate("{{.Time}} - {{.Message}}"))
@@ -159,12 +157,7 @@ Use a custom time format for log timestamps:
 ```go
 package main
 
-import (
-    "os"
-
-
-    "github.com/hvpaiva/loggo"
-)
+import "github.com/hvpaiva/loggo"
 
 func main() {
 	logger := loggo.New(
@@ -183,12 +176,7 @@ Configure the maximum size of a log message:
 ```go
 package main
 
-import (
-    "os"
-
-
-    "github.com/hvpaiva/loggo"
-)
+import "github.com/hvpaiva/loggo"
 
 func main() {
 	logger := loggo.New(
@@ -207,11 +195,7 @@ Use a custom caller provider for log caller:
 ```go
 package main
 
-import (
-    "os"
-	
-    "github.com/hvpaiva/loggo"
-)
+import "github.com/hvpaiva/loggo"
 
 func main() {
     logger := loggo.New(
@@ -233,6 +217,61 @@ func main() {
 > - line int: the line number
 > - ok bool: a boolean indicating if the information was retrieved successfully
 > - skip int: the number of stack frames to skip before getting the caller information
+
+#### Context Logging
+
+Loggo provides a `WithContext` method to create a new logger with additional context:
+
+```go
+package main
+
+import (
+	"context"
+    
+    "github.com/hvpaiva/loggo"
+)
+
+func main() {
+    ctx := context.WithValue(context.Background(), "trace_id", "123456")
+
+    logger := loggo.New(loggo.LevelInfo, loggo.WithContext(ctx))
+    logger.Infof("This is an info message with context, trace_id: %s", logger.Context.Value("trace_id"))
+    // Output: 2024-09-03 15:04:05 [ INFO]: This is an info message with context, trace_id: 123456
+}
+```
+
+#### Pre & Post Logs Hooks
+
+Loggo provides pre- and post-log hooks that can be used to execute custom logic before and after a log message is
+written:
+
+```go
+package main
+
+import (
+    "fmt"
+    "strings"
+
+    "github.com/hvpaiva/loggo"
+)
+
+func main() {
+    logger := loggo.New(
+        loggo.LevelInfo,
+        loggo.WithPreHook(func(l *loggo.Logger, msg *string) {
+            // Convert the log message to uppercase
+            *msg = strings.ToUpper(*msg)
+        }),
+        loggo.WithPostHook(func(l *loggo.Logger, msg *string) {
+            fmt.Println("Log message written:", *msg)
+        }),
+    )
+
+    logger.Info("This is an info message")
+    // Output: 2024-09-03 15:04:05 [ INFO]: THIS IS AN INFO MESSAGE
+    // Log message written: THIS IS AN INFO MESSAGE
+}
+```
 
 ### Thread-Safe Logging
 

@@ -4,22 +4,24 @@ import (
 	"fmt"
 )
 
-// logData is a structure that holds the data for a log message.
-type logData struct {
+// templateData is a structure that holds the data for a log message template.
+type templateData struct {
 	Level   string
 	Time    string
 	Message string
 	Caller  string
 }
 
-// getData returns the data for a log message.
-func getData(level Level, message string, logger *Logger) logData {
-	return logData{
+// getTemplateData returns the data for a log message template.
+func getTemplateData(level Level, message string, logger *Logger) templateData {
+	data := templateData{
 		Level:   level.String(),
 		Time:    logger.now().Format(logger.timeFormat),
 		Message: truncateString(message, logger.maxSize),
 		Caller:  getCaller(logger.callerProvider),
 	}
+
+	return data
 }
 
 // getCaller returns the file and line number of the caller.

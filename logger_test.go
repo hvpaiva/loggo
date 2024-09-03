@@ -1,6 +1,9 @@
 package loggo_test
 
 import (
+	"context"
+	"fmt"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +18,14 @@ var fakeNowString = "2022-01-25 00:00:00"
 
 var okCallerProvider = func() (pc uintptr, file string, line int, ok bool) {
 	return 0, "file", 1, true
+}
+
+var semiDefaultCallerProvider = func() (pc uintptr, file string, line int, ok bool) {
+	if pc, file, line, ok = runtime.Caller(5); ok {
+		return pc, strings.Split(file, "loggo/")[1], line, ok
+	}
+
+	return 0, "", 0, false
 }
 
 var errorCallerProvider = func() (pc uintptr, file string, line int, ok bool) {
@@ -39,21 +50,21 @@ func TestLogger_Log(t *testing.T) {
 			want:      fakeNowString + " [ INFO]: This is an info log message\n",
 		},
 		{
-			name:      "info, but in debug threshold",
+			name:      "info, but in debug Threshold",
 			threshold: loggo.LevelDebug,
 			level:     loggo.LevelInfo,
 			message:   "This is an info log message",
 			want:      fakeNowString + " [ INFO]: This is an info log message\n",
 		},
 		{
-			name:      "fatal, but in debug threshold",
+			name:      "fatal, but in debug Threshold",
 			threshold: loggo.LevelDebug,
 			level:     loggo.LevelFatal,
 			message:   "This is an fatal log message",
 			want:      fakeNowString + " [FATAL]: This is an fatal log message\n",
 		},
 		{
-			name:      "error, but in fatal threshold",
+			name:      "error, but in fatal Threshold",
 			threshold: loggo.LevelFatal,
 			level:     loggo.LevelError,
 			message:   "This is an error log message",
@@ -94,7 +105,7 @@ func TestLogger_Logf(t *testing.T) {
 			want:      fakeNowString + " [ INFO]: This is an info format log message\n",
 		},
 		{
-			name:      "info, but in debug threshold",
+			name:      "info, but in debug Threshold",
 			threshold: loggo.LevelDebug,
 			level:     loggo.LevelInfo,
 			message:   "This is an info %s log message",
@@ -102,7 +113,7 @@ func TestLogger_Logf(t *testing.T) {
 			want:      fakeNowString + " [ INFO]: This is an info format log message\n",
 		},
 		{
-			name:      "fatal, but in debug threshold",
+			name:      "fatal, but in debug Threshold",
 			threshold: loggo.LevelDebug,
 			level:     loggo.LevelFatal,
 			message:   "This is an fatal %s log message",
@@ -110,7 +121,7 @@ func TestLogger_Logf(t *testing.T) {
 			want:      fakeNowString + " [FATAL]: This is an fatal format log message\n",
 		},
 		{
-			name:      "error, but in fatal threshold",
+			name:      "error, but in fatal Threshold",
 			threshold: loggo.LevelFatal,
 			level:     loggo.LevelError,
 			message:   "This is an error %s log message",
@@ -273,7 +284,7 @@ func TestLogger_LogfE(t *testing.T) {
 			name:     "error executing template",
 			message:  "This is an info log message",
 			template: "{{.SomeField}}",
-			wantErr:  "error executing template: template: log:1:2: executing \"log\" at <.SomeField>: can't evaluate field SomeField in type loggo.logData",
+			wantErr:  "error executing template: template: log:1:2: executing \"log\" at <.SomeField>: can't evaluate field SomeField in type loggo.templateData",
 		},
 	}
 
@@ -420,8 +431,80 @@ func ExampleLogger_Log_callerProviderErr() {
 	// Output: unknown [INFO]: This is an info log message
 }
 
+func ExampleLogger_Log_callerDefault() {
+	logger := loggo.New(
+		loggo.LevelInfo,
+		loggo.WithTimeProvider(fakeNow),
+		loggo.WithTemplate("{{.Caller}} [{{.Level}}]: {{.Message}}"),
+		loggo.WithCallerProvider(semiDefaultCallerProvider),
+	)
+	logger.Log(loggo.LevelInfo, "This is an info log message")
+	// Output: logger_test.go:441 [INFO]: This is an info log message
+}
+
 func ExampleLogger_Log_timeFormat() {
 	logger := loggo.New(loggo.LevelInfo, loggo.WithTimeProvider(fakeNow), loggo.WithTimeFormat("02/01/06 00:00"))
 	logger.Log(loggo.LevelInfo, "This is an info log message")
 	// Output: 25/01/22 00:00 [ INFO]: This is an info log message
+}
+
+func ExampleLogger_Log_context() {
+	ctx := context.WithValue(context.Background(), "trace_id", "123456")
+
+	postHook := func(l *loggo.Logger, msg *string) {
+		fmt.Printf("Trace ID: %q\n", l.Context.Value("trace_id"))
+	}
+
+	logger := loggo.New(loggo.LevelInfo, loggo.WithTimeProvider(fakeNow), loggo.WithContext(ctx), loggo.WithPostHook(postHook))
+	logger.Log(loggo.LevelInfo, "This is an info log message")
+	logger.Fatal("This is a fatal log message")
+	// Output: 2022-01-25 00:00:00 [ INFO]: This is an info log message
+	// Trace ID: "123456"
+	// 2022-01-25 00:00:00 [FATAL]: This is a fatal log message
+	// Trace ID: "123456"
+}
+
+func ExampleLogger_Log_preHook() {
+	preHook := func(l *loggo.Logger, msg *string) {
+		l.Threshold = loggo.LevelWarn
+	}
+
+	logger := loggo.New(loggo.LevelInfo, loggo.WithTimeProvider(fakeNow), loggo.WithPreHook(preHook))
+	logger.Log(loggo.LevelInfo, "This is an info log message")
+	// Output:
+}
+
+func ExampleLogger_Log_preHookMessage() {
+	preHook := func(l *loggo.Logger, msg *string) {
+		*msg = "This is a pre hook message"
+	}
+
+	logger := loggo.New(loggo.LevelInfo, loggo.WithTimeProvider(fakeNow), loggo.WithPreHook(preHook))
+	logger.Log(loggo.LevelInfo, "This is an info log message")
+	// Output: 2022-01-25 00:00:00 [ INFO]: This is a pre hook message
+}
+
+func ExampleLogger_Log_postHook() {
+	ctx := context.WithValue(context.Background(), "count", 0)
+	preHook := func(l *loggo.Logger, msg *string) {
+		*msg = fmt.Sprintf("%s, count: %d", *msg, l.Context.Value("count").(int))
+	}
+
+	postHook := func(l *loggo.Logger, msg *string) {
+		count := l.Context.Value("count").(int)
+
+		l.Context = context.WithValue(ctx, "count", count+1)
+	}
+
+	logger := loggo.New(
+		loggo.LevelInfo,
+		loggo.WithTimeProvider(fakeNow),
+		loggo.WithPreHook(preHook),
+		loggo.WithPostHook(postHook),
+		loggo.WithContext(ctx),
+	)
+	logger.Log(loggo.LevelInfo, "This is an info log message")
+	logger.Log(loggo.LevelFatal, "This is a fatal log message")
+	// Output: 2022-01-25 00:00:00 [ INFO]: This is an info log message, count: 0
+	// 2022-01-25 00:00:00 [FATAL]: This is a fatal log message, count: 1
 }

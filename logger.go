@@ -1,6 +1,8 @@
 package loggo
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,23 +13,26 @@ import (
 )
 
 // Logger is the structure that holds the logger information.
-// It includes the log level threshold, output destination, message template, and time provider.
+// It includes the log level Threshold, output destination, message template, and time provider.
 type Logger struct {
-	mu             sync.Mutex     // Ensures thread-safe access to the logger
-	threshold      Level          // Minimum log level to output
-	output         io.Writer      // Destination for log output
-	template       string         // Template for log messages
-	now            TimeProvider   // Function to get the current time
-	timeFormat     string         // Format for the time in the log message
-	maxSize        int            // Maximum size of the log message
-	callerProvider CallerProvider // Function to get the caller information
+	Context        context.Context // Context for the logger
+	Threshold      Level           // Minimum log level to output
+	mu             sync.RWMutex    // Ensures thread-safe access to the logger
+	output         io.Writer       // Destination for log output
+	template       string          // Template for log messages
+	now            TimeProvider    // Function to get the current time
+	timeFormat     string          // Format for the time in the log message
+	maxSize        int             // Maximum size of the log message
+	callerProvider CallerProvider  // Function to get the caller information
+	preHooks       []Hook          // Pre-hooks to run before logging
+	postHooks      []Hook          // Post-hooks to run after logging
 }
 
-// New creates a new Logger with the given threshold and options.
+// New creates a new Logger with the given Threshold and options.
 // The default output is os.Stdout, the default template is "%s [%5s]: %s", and the default time provider is time.Now.
 //
 // Parameters:
-//   - threshold: Minimum log level to output.
+//   - Threshold: Minimum log level to output.
 //   - options: Variadic options to configure the Logger.
 //
 // Returns:
@@ -38,18 +43,22 @@ type Logger struct {
 //	logger := loggo.New(loggo.LevelInfo, loggo.WithOutput(os.Stderr))
 //	logger.Info("This is an info message")
 func New(threshold Level, options ...Option) *Logger {
-	log := &Logger{
-		threshold:  threshold,
-		output:     os.Stdout,
-		template:   "{{.Time}} [{{printf \"%5s\" .Level}}]: {{.Message}}",
-		now:        time.Now,
-		timeFormat: "2006-01-02 15:04:05",
-		maxSize:    1000,
-		callerProvider: func() (pc uintptr, file string, line int, ok bool) {
-			pc, file, line, ok = runtime.Caller(2)
+	defaultCaller := func() (pc uintptr, file string, line int, ok bool) {
+		pc, file, line, ok = runtime.Caller(5)
 
-			return
-		},
+		return
+	}
+	log := &Logger{
+		Threshold:      threshold,
+		Context:        context.Background(),
+		output:         os.Stdout,
+		template:       "{{.Time}} [{{printf \"%5s\" .Level}}]: {{.Message}}",
+		now:            time.Now,
+		timeFormat:     "2006-01-02 15:04:05",
+		maxSize:        1000,
+		callerProvider: defaultCaller,
+		preHooks:       []Hook{},
+		postHooks:      []Hook{},
 	}
 
 	for _, option := range options {
@@ -60,7 +69,7 @@ func New(threshold Level, options ...Option) *Logger {
 }
 
 // Log logs a message at the given log level.
-// If the log level is below the threshold, the message is not logged. If an error occurs while logging the message, it is ignored.
+// If the log level is below the Threshold, the message is not logged. If an error occurs while logging the message, it is ignored.
 //
 // Parameters:
 //   - level: The log level of the message.
@@ -75,7 +84,7 @@ func (l *Logger) Log(level Level, message string) {
 }
 
 // LogE logs a message at the given log level and returns an error if the message could not be logged.
-// If the log level is below the threshold, the message is not logged.
+// If the log level is below the Threshold, the message is not logged.
 //
 // Parameters:
 //   - level: The log level of the message.
@@ -92,29 +101,37 @@ func (l *Logger) Log(level Level, message string) {
 //		log.Fatal(err)
 //	}
 func (l *Logger) LogE(level Level, message string) error {
-	if l.threshold > level {
+	for _, hook := range l.preHooks {
+		hook(l, &message)
+	}
+
+	if l.Threshold > level {
 		return nil
 	}
 
-	data := getData(level, message, l)
+	data := getTemplateData(level, message, l)
 
 	tmpl, err := template.New("log").Parse(l.template + "\n")
 	if err != nil {
-		return fmt.Errorf("error parsing template: %w", err)
+		return errors.New("error parsing template: " + err.Error())
 	}
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	if err = tmpl.Execute(l.output, data); err != nil {
-		return fmt.Errorf("error executing template: %w", err)
+		return errors.New("error executing template: " + err.Error())
+	}
+
+	for _, hook := range l.postHooks {
+		hook(l, &message)
 	}
 
 	return nil
 }
 
 // Logf logs a formatted message at the given log level.
-// If the log level is below the threshold, the message is not logged. If an error occurs while logging the message, it is ignored.
+// If the log level is below the Threshold, the message is not logged. If an error occurs while logging the message, it is ignored.
 //
 // Parameters:
 //   - level: The log level of the message.
@@ -130,7 +147,7 @@ func (l *Logger) Logf(level Level, format string, args ...any) {
 }
 
 // LogfE logs a formatted message at the given log level and returns an error if the message could not be logged.
-// If the log level is below the threshold, the message is not logged.
+// If the log level is below the Threshold, the message is not logged.
 //
 // Parameters:
 //   - level: The log level of the message.

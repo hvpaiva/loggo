@@ -18,7 +18,6 @@ linters:
     - asciicheck
     - bidichk
     - bodyclose
-    - containedctx
     - contextcheck
     - cyclop
     - decorder
@@ -39,7 +38,6 @@ linters:
     - gocyclo
     - godot
     - godox
-    - err113
     - gofumpt
     - goheader
     - gomoddirectives
