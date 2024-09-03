@@ -1,4 +1,5 @@
 # Loggo - A Go Logging Library
+
 [![Go Reference](https://pkg.go.dev/badge/github.com/hvpaiva/loggo#section-readme.svg)](https://pkg.go.dev/github.com/hvpaiva/loggo#section-readme)
 [![License](https://img.shields.io/badge/License-Mit-blue.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hvpaiva/loggo)](https://goreportcard.com/report/github.com/hvpaiva/loggo)
@@ -17,11 +18,13 @@
                                                        
 ```
 
-Loggo is a simple and flexible logging library for Go, providing configurable log levels, output destinations, message templates, and time providers.
+Loggo is a simple and flexible logging library for Go, offering configurable log levels, output destinations, message 
+templates, time providers, and more.
 
-> **This library has no external dependencies.**
+> **Note:** This library has no external dependencies.
 
 ## Table of Contents
+
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -31,8 +34,11 @@ Loggo is a simple and flexible logging library for Go, providing configurable lo
   - [Custom Time Provider](#custom-time-provider)
   - [Custom Time Format](#custom-time-format)
   - [Maximum Log Message Size](#maximum-log-message-size)
+  - [Custom Caller Provider](#custom-caller-provider)
+  - [Context Logging](#context-logging)
+  - [Pre & Post Log Hooks](#pre--post-log-hooks)
 - [Thread-Safe Logging](#thread-safe-logging)
-- [Vs Go Standard Library Log](#vs-go-standard-library-log)
+- [Comparison with Go's Standard Library](#comparison-with-gos-standard-library)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
@@ -49,7 +55,7 @@ Loggo is a simple and flexible logging library for Go, providing configurable lo
 
 ## Installation
 
-To install Loggo, use `go get`:
+To install Loggo, run:
 
 ```sh
 go get github.com/hvpaiva/loggo
@@ -57,9 +63,9 @@ go get github.com/hvpaiva/loggo
 
 ## Usage
 
-#### Basic Usage
+### Basic Usage
 
-Create a new logger with a specified log level and log messages:
+Initialize a logger with a specified log level and log messages:
 
 ```go
 package main
@@ -71,15 +77,13 @@ func main() {
 	
     logger.Info("This is an info message")
     logger.Debug("This debug message will not be logged")
-	// Output: 
-	// 2024-09-03 15:04:05 [ INFO]: This is an info message
-	
+    // Output: 2024-09-03 15:04:05 [ INFO]: This is an info message
 }
 ```
 
-#### Custom Output
+### Custom Output
 
-Log to a file instead of the standard output:
+Redirect logs to a file instead of standard output:
 
 ```go
 package main
@@ -101,9 +105,9 @@ func main() {
 }
 ```
 
-#### Custom Template
+### Custom Template
 
-Customize the log message format:
+Define a custom format for log messages:
 
 ```go
 package main
@@ -113,21 +117,21 @@ import "github.com/hvpaiva/loggo"
 func main() {
     logger := loggo.New(loggo.LevelInfo, loggo.WithTemplate("{{.Time}} - {{.Message}}"))
     logger.Info("This is an info message")
-	// Output: 2024-09-03 15:04:05 - This is an info message
+    // Output: 2024-09-03 15:04:05 - This is an info message
 }
 ```
 
-> The template can receive the following placeholders:
-> - {{.Level}}: the log level (e.g., "INFO", "DEBUG", etc.)
-> - {{.Time}}: the log timestamp (e.g., "2024-09-03 15:04:05")
-> - {{.Message}}: the log message
-> - {{.Caller}}: the log caller (e.g., "main.go:10")
-> 
-> The default template is `{{.Time}} [{{printf \"%5s\" .Level}}]: {{.Message}}`.
+> Available template placeholders:
+> - `{{.Level}}`: log level (e.g., "INFO", "DEBUG")
+> - `{{.Time}}`: log timestamp (e.g., "2024-09-03 15:04:05")
+> - `{{.Message}}`: log message
+> - `{{.Caller}}`: log caller (e.g., "main.go:10")
+>
+> Default template: `{{.Time}} [{{printf \"%5s\" .Level}}]: {{.Message}}`.
 
-#### Custom Time Provider
+### Custom Time Provider
 
-Use a custom time provider for log timestamps:
+Specify a custom time provider for timestamps:
 
 ```go
 package main
@@ -146,13 +150,13 @@ func fakeNow() time.Time {
 func main() {
     logger := loggo.New(loggo.LevelInfo, loggo.WithTimeProvider(fakeNow))
     logger.Info("This message will have a custom timestamp")
-	// Output: 1970-01-01 00:00:00 [ INFO]: This message will have a custom timestamp
+    // Output: 1970-01-01 00:00:00 [ INFO]: This message will have a custom timestamp
 }
 ```
 
-#### Custom Time Format
+### Custom Time Format
 
-Use a custom time format for log timestamps:
+Set a custom time format for timestamps:
 
 ```go
 package main
@@ -165,13 +169,13 @@ func main() {
 		loggo.WithTimeFormat("02/01/2006 15:04:05"),
 	)
     logger.Info("This message will have a custom time format")
-	// Output: 01/02/2006 00:00:00 [ INFO]: This message will have a custom time format
+    // Output: 01/02/2006 15:04:05 [ INFO]: This message will have a custom time format
 }
 ```
 
-#### Maximum Log Message Size
+### Maximum Log Message Size
 
-Configure the maximum size of a log message:
+Limit the maximum size of a log message:
 
 ```go
 package main
@@ -184,13 +188,13 @@ func main() {
 		loggo.WithMaxSize(10),
 	)
     logger.Info("This is an info message with a maximum size")
-	// Output: 2024-09-03 15:04:05 [ INFO]: This is an
+    // Output: 2024-09-03 15:04:05 [ INFO]: This is an
 }
 ```
 
-#### Custom Caller Provider
+### Custom Caller Provider
 
-Use a custom caller provider for log caller:
+Use a custom caller provider for log caller information:
 
 ```go
 package main
@@ -201,7 +205,6 @@ func main() {
     logger := loggo.New(
         loggo.LevelInfo,
         loggo.WithCallerProvider(func() (pc uintptr, file string, line int, ok bool) {
-            // Implement your custom caller provider here
             return 0, "custom caller", 0, true
         }),
 		loggo.WithTemplate("{{.Caller}} - {{.Message}}"),
@@ -211,23 +214,16 @@ func main() {
 }
 ```
 
-> The signature of the caller provider are the same as the [runtime.Caller](https://golang.org/pkg/runtime/#Caller) function.
-> - pc uintptr: the program counter -> This value is not used by the caller provider
-> - file string: the file name
-> - line int: the line number
-> - ok bool: a boolean indicating if the information was retrieved successfully
-> - skip int: the number of stack frames to skip before getting the caller information
+### Context Logging
 
-#### Context Logging
-
-Loggo provides a `WithContext` method to create a new logger with additional context:
+Enhance a logger with additional context using `WithContext`:
 
 ```go
 package main
 
 import (
-	"context"
-    
+    "context"
+
     "github.com/hvpaiva/loggo"
 )
 
@@ -240,10 +236,9 @@ func main() {
 }
 ```
 
-#### Pre & Post Logs Hooks
+### Pre & Post Log Hooks
 
-Loggo provides pre- and post-log hooks that can be used to execute custom logic before and after a log message is
-written:
+Execute custom logic before and after a log message:
 
 ```go
 package main
@@ -259,7 +254,6 @@ func main() {
     logger := loggo.New(
         loggo.LevelInfo,
         loggo.WithPreHook(func(l *loggo.Logger, msg *string) {
-            // Convert the log message to uppercase
             *msg = strings.ToUpper(*msg)
         }),
         loggo.WithPostHook(func(l *loggo.Logger, msg *string) {
@@ -273,68 +267,65 @@ func main() {
 }
 ```
 
-### Thread-Safe Logging
+## Thread-Safe Logging
 
-Loggo ensures thread-safe logging using a mutex:
+Loggo ensures thread safety using a mutex:
 
 ```go
 package main
 
 import (
-	"os"
-	"sync"
+  "os"
+  "sync"
 
-	"github.com/hvpaiva/loggo"
+  "github.com/hvpaiva/loggo"
 )
 
 func main() {
-	logger := loggo.New(loggo.LevelInfo, loggo.WithOutput(os.Stdout))
-	var wg sync.WaitGroup
+  logger := loggo.New(loggo.LevelInfo, loggo.WithOutput(os.Stdout))
+  var wg sync.WaitGroup
 
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			logger.Infof("Logging from goroutine %d", i)
-		}(i)
-	}
+  for i := 0; i < 10; i++ {
+    wg.Add(1)
+    go func(i int) {
+      defer wg.Done()
+      logger.Infof("Logging from goroutine %d", i)
+    }(i)
+  }
 
-	wg.Wait()
+  wg.Wait()
 }
 ```
 
-### Vs Go Standard Library Log
+## Comparison with Go's Standard Library
 
-Loggo provides several advantages over the [Go standard library log](https://pkg.go.dev/log) package:
+Loggo provides several advantages over the [Go standard library log package](https://pkg.go.dev/log):
 
-| Feature                                  | Loggo | Go Standard Library Log |
-|------------------------------------------|-------|-------------------------|
-| Configurable log levels                  | Yes   | No*                     |
-| Customizable output destinations         | Yes   | Yes                     |
-| Flexible message templates               | Yes   | No**                    |
-| Formatted log messages                   | Yes   | Yes                     |
-| Custom time providers for log timestamps | Yes   | No                      |
-| Custom time formats for log timestamps   | Yes   | No                      |
-| Configurable maximum log message size    | Yes   | No                      |
-| Thread-safe logging                      | Yes   | Yes                     |
-| Custom caller provider for log caller    | Yes   | No*\**                  |
+| Feature                                  | Loggo | Go Log |
+|------------------------------------------|-------|--------|
+| Configurable log levels                  | Yes   | No*    |
+| Customizable output destinations         | Yes   | Yes    |
+| Flexible message templates               | Yes   | No**   |
+| Formatted log messages                   | Yes   | Yes    |
+| Custom time providers                    | Yes   | No     |
+| Custom time formats                      | Yes   | No     |
+| Maximum log message size                 | Yes   | No     |
+| Thread-safe logging                      | Yes   | Yes    |
+| Custom caller provider                   | Yes   | No*\** |
 
-> \* The Go standard library log package provides a single global logger with no log levels. There are three predefined loggers: 
-> `log.Print`, `log.Fatal`, and `log.Panic`, which fell like a log level, but they are more like log actions.
-> (Just print, print and exit, print and panic, respectively).
->
-> \** The Go standard library log package provides a set of predefined message formats that cannot be customized.
->
-> \*\** The Go standard library log package provides caller information in the log message, but it is not configurable.
-
+> \* Go's log level is action-based with functions like `log.Print`, `log.Fatal`, and `log.Panic`.
 > 
+> \** Predefined message format in Go's log.
+> 
+> \*\** Caller info in Go's log is not configurable.
+
 ## Documentation
 
-For more detailed documentation and examples, please refer to the [GoDoc](https://pkg.go.dev/github.com/hvpaiva/loggo).
+For detailed documentation and examples, visit the [GoDoc](https://pkg.go.dev/github.com/hvpaiva/loggo).
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request on GitHub.
+Contributions are welcome! Feel free to open an issue or submit a pull request on GitHub.
 
 ## License
 
