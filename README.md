@@ -1,9 +1,12 @@
 # Loggo
 [![Go Reference](https://pkg.go.dev/badge/github.com/hvpaiva/loggo#section-readme.svg)](https://pkg.go.dev/github.com/hvpaiva/loggo#section-readme)
-[![Go Report Card](https://goreportcard.com/badge/github.com/hvpaiva/loggo)](https://goreportcard.com/report/github.com/hvpaiva/loggo)
 [![License](https://img.shields.io/badge/License-Mit-blue.svg)](LICENSE)
-[![CI](https://github.com/hvpaiva/loggo/actions/workflows/ci.yml/badge.svg)](https://github.com/hvpaiva/loggo/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/hvpaiva/loggo)](https://goreportcard.com/report/github.com/hvpaiva/loggo)
 [![codecov](https://codecov.io/gh/hvpaiva/loggo/branch/main/graph/badge.svg)](https://codecov.io/gh/hvpaiva/loggo)
+
+[![CI](https://github.com/hvpaiva/loggo/actions/workflows/ci.yml/badge.svg)](https://github.com/hvpaiva/loggo/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/hvpaiva/loggo/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/hvpaiva/loggo/actions/workflows/github-code-scanning/codeql)
+[![Dependabot Updates](https://github.com/hvpaiva/loggo/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/hvpaiva/loggo/actions/workflows/dependabot/dependabot-updates)
 
 
 Loggo is a simple and flexible logging library for Go, providing configurable log levels, output destinations, message templates, and time providers.
