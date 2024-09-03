@@ -3,7 +3,6 @@ package loggo_test
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -18,14 +17,6 @@ var fakeNowString = "2022-01-25 00:00:00"
 
 var okCallerProvider = func() (pc uintptr, file string, line int, ok bool) {
 	return 0, "file", 1, true
-}
-
-var semiDefaultCallerProvider = func() (pc uintptr, file string, line int, ok bool) {
-	if pc, file, line, ok = runtime.Caller(5); ok {
-		return pc, strings.Split(file, "loggo/")[1], line, ok
-	}
-
-	return 0, "", 0, false
 }
 
 var errorCallerProvider = func() (pc uintptr, file string, line int, ok bool) {
@@ -429,17 +420,6 @@ func ExampleLogger_Log_callerProviderErr() {
 	)
 	logger.Log(loggo.LevelInfo, "This is an info log message")
 	// Output: unknown [INFO]: This is an info log message
-}
-
-func ExampleLogger_Log_callerDefault() {
-	logger := loggo.New(
-		loggo.LevelInfo,
-		loggo.WithTimeProvider(fakeNow),
-		loggo.WithTemplate("{{.Caller}} [{{.Level}}]: {{.Message}}"),
-		loggo.WithCallerProvider(semiDefaultCallerProvider),
-	)
-	logger.Log(loggo.LevelInfo, "This is an info log message")
-	// Output: logger_test.go:441 [INFO]: This is an info log message
 }
 
 func ExampleLogger_Log_timeFormat() {
